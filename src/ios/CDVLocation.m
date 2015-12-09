@@ -155,7 +155,7 @@
     }
     if (background) {
         __backgroundUpdatesEnabled = YES;
-        if([self.locationManager respondsToSelector:@selector(allowsBackgroundLocationUpdates)]) {
+        if([self.locationManager respondsToSelector:@selector(allowsBackgroundLocationUpdates)]) { // iOS 9.0+
             self.locationManager.allowsBackgroundLocationUpdates = YES;
         }
     }
@@ -172,7 +172,9 @@
         __locationStarted = NO;
         __highAccuracyEnabled = NO;
         __backgroundUpdatesEnabled = NO;
-        self.locationManager.allowsBackgroundLocationUpdates = NO;
+        if([self.locationManager respondsToSelector:@selector(allowsBackgroundLocationUpdates)]) { // iOS 9.0+
+            self.locationManager.allowsBackgroundLocationUpdates = NO;
+        }
     }
 }
 
