@@ -32,7 +32,9 @@ function parseParameters(options) {
     var opt = {
         maximumAge: 0,
         enableHighAccuracy: false,
-        timeout: Infinity
+        timeout: Infinity,
+        enableBackgroundUpdates: false
+
     };
 
     if (options) {
@@ -48,6 +50,9 @@ function parseParameters(options) {
             } else {
                 opt.timeout = options.timeout;
             }
+        }
+        if (options.enableBackgroundUpdates !== undefined) {
+            opt.enableBackgroundUpdates = options.enableBackgroundUpdates;
         }
     }
 
@@ -139,7 +144,7 @@ var geolocation = {
                 // always truthy before we call into native
                 timeoutTimer.timer = true;
             }
-            exec(win, fail, "Geolocation", "getLocation", [options.enableHighAccuracy, options.maximumAge]);
+            exec(win, fail, "Geolocation", "getLocation", [options.enableHighAccuracy, options.maximumAge, options.enableBackgroundUpdates]);
         }
         return timeoutTimer;
     },
@@ -190,7 +195,7 @@ var geolocation = {
             successCallback(pos);
         };
 
-        exec(win, fail, "Geolocation", "addWatch", [id, options.enableHighAccuracy]);
+        exec(win, fail, "Geolocation", "addWatch", [id, options.enableHighAccuracy, options.enableBackgroundUpdates]);
 
         return id;
     },
@@ -199,11 +204,11 @@ var geolocation = {
      *
      * @param {String} id       The ID of the watch returned from #watchPosition
      */
-    clearWatch:function(id) {
+    clearWatch:function(id, successCallback) {
         if (id && timers[id] !== undefined) {
             clearTimeout(timers[id].timer);
             timers[id].timer = false;
-            exec(null, null, "Geolocation", "clearWatch", [id]);
+            exec(successCallback, null, "Geolocation", "clearWatch", [id]);
         }
     }
 };

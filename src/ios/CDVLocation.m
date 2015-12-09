@@ -59,6 +59,7 @@
     self.locationManager.delegate = self; // Tells the location manager to send updates to this object
     __locationStarted = NO;
     __highAccuracyEnabled = NO;
+    __backgroundUpdatesEnabled = NO;
     self.locationData = nil;
 }
 
@@ -94,7 +95,7 @@
     }
 }
 
-- (void)startLocation:(BOOL)enableHighAccuracy
+- (void)startLocation:(BOOL)enableHighAccuracy background:(BOOL)background;
 {
     if (![self isLocationServicesEnabled]) {
         [self returnLocationError:PERMISSIONDENIED withMessage:@"Location services are not enabled."];
@@ -151,6 +152,12 @@
         self.locationManager.distanceFilter = 10;
         self.locationManager.desiredAccuracy = kCLLocationAccuracyThreeKilometers;
     }
+    if (background) {
+        __backgroundUpdatesEnabled = YES;
+        if([self.locationManager respondsToSelector:@selector(allowsBackgroundLocationUpdates)]) {
+            self.locationManager.allowsBackgroundLocationUpdates = YES;
+        }
+    }
 }
 
 - (void)_stopLocation
@@ -163,6 +170,8 @@
         [self.locationManager stopUpdatingLocation];
         __locationStarted = NO;
         __highAccuracyEnabled = NO;
+        __backgroundUpdatesEnabled = NO;
+        self.locationManager.allowsBackgroundLocationUpdates = NO;
     }
 }
 
@@ -194,6 +203,7 @@
 {
     NSString* callbackId = command.callbackId;
     BOOL enableHighAccuracy = [[command argumentAtIndex:0] boolValue];
+    BOOL enableBackgroundUpdates = [[command argumentAtIndex:2] boolValue]; // argumentAtIndex 1 is maximumAge, which we don't care about.
 
     if ([self isLocationServicesEnabled] == NO) {
         NSMutableDictionary* posError = [NSMutableDictionary dictionaryWithCapacity:2];
@@ -210,13 +220,13 @@
             lData.locationCallbacks = [NSMutableArray arrayWithCapacity:1];
         }
 
-        if (!__locationStarted || (__highAccuracyEnabled != enableHighAccuracy)) {
+        if (!__locationStarted || (__highAccuracyEnabled != enableHighAccuracy) || (__backgroundUpdatesEnabled != enableBackgroundUpdates)) {
             // add the callbackId into the array so we can call back when get data
             if (callbackId != nil) {
                 [lData.locationCallbacks addObject:callbackId];
             }
             // Tell the location manager to start notifying us of heading updates
-            [self startLocation:enableHighAccuracy];
+            [self startLocation:enableHighAccuracy background:enableBackgroundUpdates];
         } else {
             [self returnLocationInfo:callbackId andKeepCallback:NO];
         }
@@ -228,6 +238,7 @@
     NSString* callbackId = command.callbackId;
     NSString* timerId = [command argumentAtIndex:0];
     BOOL enableHighAccuracy = [[command argumentAtIndex:1] boolValue];
+    BOOL enableBackgroundUpdates = [[command argumentAtIndex:2] boolValue];
 
     if (!self.locationData) {
         self.locationData = [[CDVLocationData alloc] init];
@@ -248,15 +259,16 @@
         CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:posError];
         [self.commandDelegate sendPluginResult:result callbackId:callbackId];
     } else {
-        if (!__locationStarted || (__highAccuracyEnabled != enableHighAccuracy)) {
+        if (!__locationStarted || (__highAccuracyEnabled != enableHighAccuracy) || (__backgroundUpdatesEnabled != enableBackgroundUpdates)) {
             // Tell the location manager to start notifying us of location updates
-            [self startLocation:enableHighAccuracy];
+            [self startLocation:enableHighAccuracy background:enableBackgroundUpdates];
         }
     }
 }
 
 - (void)clearWatch:(CDVInvokedUrlCommand*)command
 {
+    NSString* callbackId = command.callbackId;
     NSString* timerId = [command argumentAtIndex:0];
 
     if (self.locationData && self.locationData.watchCallbacks && [self.locationData.watchCallbacks objectForKey:timerId]) {
@@ -264,6 +276,8 @@
         if([self.locationData.watchCallbacks count] == 0) {
             [self _stopLocation];
         }
+        CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:result callbackId:callbackId];
     }
 }
 
@@ -347,7 +361,7 @@
 -(void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
 {
     if(!__locationStarted){
-        [self startLocation:__highAccuracyEnabled];
+        [self startLocation:__highAccuracyEnabled background:__backgroundUpdatesEnabled];
     }
 }
 
