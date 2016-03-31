@@ -32,7 +32,8 @@ function parseParameters(options) {
     var opt = {
         maximumAge: 0,
         enableHighAccuracy: false,
-        timeout: Infinity
+        timeout: Infinity,
+        enableBackgroundUpdates: false
     };
 
     if (options) {
@@ -49,6 +50,10 @@ function parseParameters(options) {
                 opt.timeout = options.timeout;
             }
         }
+
+        if (options.enableBackgroundUpdates !== undefined) {
+            opt.enableBackgroundUpdates = options.enableBackgroundUpdates;
+        }        
     }
 
     return opt;
@@ -56,6 +61,7 @@ function parseParameters(options) {
 
 // Returns a timeout failure, closed over a specified timeout value and error callback.
 function createTimeout(errorCallback, timeout) {
+    console.log('creating a new timeout for ', timeout);
     var t = setTimeout(function() {
         clearTimeout(t);
         t = null;
@@ -139,7 +145,7 @@ var geolocation = {
                 // always truthy before we call into native
                 timeoutTimer.timer = true;
             }
-            exec(win, fail, "Geolocation", "getLocation", [options.enableHighAccuracy, options.maximumAge]);
+            exec(win, fail, "Geolocation", "getLocation", [options.enableHighAccuracy, options.maximumAge, options.enableBackgroundUpdates]);
         }
         return timeoutTimer;
     },
@@ -162,7 +168,12 @@ var geolocation = {
         timers[id] = geolocation.getCurrentPosition(successCallback, errorCallback, options);
 
         var fail = function(e) {
+            console.log('fail callback...');
             clearTimeout(timers[id].timer);
+            if (options.timeout !== Infinity) {
+                timers[id].timer = createTimeout(fail, options.timeout);
+            }
+
             var err = new PositionError(e.code, e.message);
             if (errorCallback) {
                 errorCallback(err);
@@ -170,6 +181,7 @@ var geolocation = {
         };
 
         var win = function(p) {
+            console.log('win callback...');
             clearTimeout(timers[id].timer);
             if (options.timeout !== Infinity) {
                 timers[id].timer = createTimeout(fail, options.timeout);
@@ -190,7 +202,7 @@ var geolocation = {
             successCallback(pos);
         };
 
-        exec(win, fail, "Geolocation", "addWatch", [id, options.enableHighAccuracy]);
+        exec(win, fail, "Geolocation", "addWatch", [id, options.enableHighAccuracy, options.enableBackgroundUpdates]);
 
         return id;
     },
@@ -199,13 +211,30 @@ var geolocation = {
      *
      * @param {String} id       The ID of the watch returned from #watchPosition
      */
-    clearWatch:function(id) {
+    clearWatch:function(id, successCallback) {
         if (id && timers[id] !== undefined) {
             clearTimeout(timers[id].timer);
             timers[id].timer = false;
-            exec(null, null, "Geolocation", "clearWatch", [id]);
+            exec(successCallback, null, "Geolocation", "clearWatch", [id]);
         }
-    }
+    },
+
+    isLocationEnabled: function(successCallback, errorCallback) {
+
+        exec(successCallback, errorCallback, "Geolocation", "isLocationEnabled", []);
+    },
+
+    switchToSettings: function() {
+
+        var successCallback = function(data) {
+          console.log('switch success callback', data);
+        };
+
+        var errorCallback = function(err) {
+          console.log('switch error callback', err);
+        };
+        exec(successCallback, errorCallback, "Geolocation", "switchToSettings", []);
+    }      
 };
 
 module.exports = geolocation;
