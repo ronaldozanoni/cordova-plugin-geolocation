@@ -263,16 +263,16 @@
                 lData.locationCallbacks = [NSMutableArray arrayWithCapacity:1];
             }
 
-            if (!__locationStarted || (__highAccuracyEnabled != enableHighAccuracy) || (__backgroundUpdatesEnabled != enableBackgroundUpdates)) {
+            // if (!__locationStarted || (__highAccuracyEnabled != enableHighAccuracy) || (__backgroundUpdatesEnabled != enableBackgroundUpdates)) {
                 // add the callbackId into the array so we can call back when get data
                 if (callbackId != nil) {
                     [lData.locationCallbacks addObject:callbackId];
                 }
                 // Tell the location manager to start notifying us of heading updates
                 [self startLocation:enableHighAccuracy background:enableBackgroundUpdates];
-            } else {
-                [self returnLocationInfo:callbackId andKeepCallback:NO];
-            }
+            // } else {
+            //     [self returnLocationInfo:callbackId andKeepCallback:NO];
+            // }
         }
 
     }];
@@ -305,10 +305,10 @@
         CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:posError];
         [self.commandDelegate sendPluginResult:result callbackId:callbackId];
     } else {
-        if (!__locationStarted || (__highAccuracyEnabled != enableHighAccuracy) || (__backgroundUpdatesEnabled != enableBackgroundUpdates)) {
+        // if (!__locationStarted || (__highAccuracyEnabled != enableHighAccuracy) || (__backgroundUpdatesEnabled != enableBackgroundUpdates)) {
             // Tell the location manager to start notifying us of location updates
             [self startLocation:enableHighAccuracy background:enableBackgroundUpdates];
-        }
+        // }
     }
 }
 

@@ -165,11 +165,11 @@ var geolocation = {
         var id = utils.createUUID();
 
         // Tell device to get a position ASAP, and also retrieve a reference to the timeout timer generated in getCurrentPosition
-        timers[id] = geolocation.getCurrentPosition(successCallback, errorCallback, options);
+        // timers[id] = geolocation.getCurrentPosition(successCallback, errorCallback, options);
 
         var fail = function(e) {
             console.log('fail callback...');
-            clearTimeout(timers[id].timer);
+            timers[id].timer && clearTimeout(timers[id].timer);
             if (options.timeout !== Infinity) {
                 timers[id].timer = createTimeout(fail, options.timeout);
             }
@@ -182,7 +182,7 @@ var geolocation = {
 
         var win = function(p) {
             console.log('win callback...');
-            clearTimeout(timers[id].timer);
+            timers[id].timer && clearTimeout(timers[id].timer);
             if (options.timeout !== Infinity) {
                 timers[id].timer = createTimeout(fail, options.timeout);
             }
